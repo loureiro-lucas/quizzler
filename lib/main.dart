@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'quiz_brain.dart';
+
+QuizBrain quizBrain = QuizBrain();
 
 void main() => runApp(Quizzler());
 
@@ -25,6 +29,86 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  Icon right = Icon(
+    Icons.check,
+    color: Colors.green,
+  );
+
+  Icon wrong = Icon(
+    Icons.close,
+    color: Colors.red,
+  );
+
+  List<Icon> scoreKeeper = [];
+
+  int score = 0;
+
+  bool isQuizFinished = false;
+
+  void setScore(bool userAnswer) {
+    if (userAnswer == quizBrain.getQuestionAnswer()) {
+      scoreKeeper.add(right);
+      score++;
+    } else {
+      scoreKeeper.add(wrong);
+    }
+  }
+
+  void resetScore() {
+    scoreKeeper = [];
+    score = 0;
+  }
+
+  void restartQuiz() {
+    setState(() {
+      resetScore();
+      quizBrain.resetQuestionIndex();
+      isQuizFinished = false;
+    });
+  }
+
+  void showFinishAlert(context) {
+    Alert(
+      context: context,
+      title: "You got it!",
+      desc: "Very good! Your score was $score.",
+      buttons: [
+        DialogButton(
+          color: Colors.green,
+          radius: BorderRadius.all(Radius.circular(0.0)),
+          child: Text(
+            "Do it again!",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () {
+            restartQuiz();
+            Navigator.pop(context);
+          },
+          width: 160,
+        )
+      ],
+    ).show();
+  }
+
+  void handleUserAnswer(bool userAnswer) {
+    setState(() {
+      if (isQuizFinished) {
+        showFinishAlert(context);
+      } else {
+        setScore(userAnswer);
+
+        bool isLastQuestion = quizBrain.checkIfIsLastQuestion();
+
+        if (isLastQuestion) {
+          isQuizFinished = isLastQuestion;
+          showFinishAlert(context);
+        } else {
+          quizBrain.setNextQuestion();
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +121,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                quizBrain.getQuestionHeading(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -50,7 +134,7 @@ class _QuizPageState extends State<QuizPage> {
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(15.0),
-            child: FlatButton(
+            child: MaterialButton(
               textColor: Colors.white,
               color: Colors.green,
               child: Text(
@@ -60,16 +144,14 @@ class _QuizPageState extends State<QuizPage> {
                   fontSize: 20.0,
                 ),
               ),
-              onPressed: () {
-                //The user picked true.
-              },
+              onPressed: () => handleUserAnswer(true),
             ),
           ),
         ),
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(15.0),
-            child: FlatButton(
+            child: MaterialButton(
               color: Colors.red,
               child: Text(
                 'False',
@@ -78,20 +160,14 @@ class _QuizPageState extends State<QuizPage> {
                   color: Colors.white,
                 ),
               ),
-              onPressed: () {
-                //The user picked false.
-              },
+              onPressed: () => handleUserAnswer(false),
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          children: scoreKeeper,
+        )
       ],
     );
   }
 }
-
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
-*/
